@@ -1,10 +1,6 @@
 import pandas as pd
 
-# 데이터 읽기
-data_path = '/mnt/data/ChatbotData.csv'
-data = pd.read_csv(data_path)
-
-# 레벤슈타인 거리 함수
+# 레벤슈타인 거리 계산 함수
 def levenshtein_distance(s1, s2):
     if len(s1) < len(s2):
         return levenshtein_distance(s2, s1)
@@ -24,30 +20,44 @@ def levenshtein_distance(s1, s2):
     
     return previous_row[-1]
 
-# 유사도 계산 및 가장 유사한 질문 찾기
-def find_most_similar_question(chat_question, questions):
-    min_distance = float('inf')
-    min_index = -1
-    
-    for i, question in enumerate(questions):
-        distance = levenshtein_distance(chat_question, question)
-        if distance < min_distance:
-            min_distance = distance
-            min_index = i
-    
-    return min_index
+# 챗봇 클래스 정의
+class SimpleChatBot:
+    # 챗봇 객체 초기화
+    def __init__(self, filepath):
+        self.questions, self.answers = self.load_data(filepath)
 
-# 예제 chat의 질문
-chat_question = "오늘 날씨 어때?"
+    # CSV 파일로부터 질문과 답변 데이터를 불러오는 메서드
+    def load_data(self, filepath):
+        data = pd.read_csv(filepath)
+        questions = data['Q'].tolist()
+        answers = data['A'].tolist()
+        return questions, answers
 
-# 학습 데이터의 질문들
-questions = data['Q'].tolist()
+    # 입력 문장에 가장 잘 맞는 답변을 찾는 메서드
+    def find_best_answer(self, input_sentence):
+        min_distance = float('inf')
+        best_match_index = -1
+        
+        # 모든 질문에 대해 레벤슈타인 거리를 계산하여 가장 유사한 질문을 찾음
+        for i, question in enumerate(self.questions):
+            distance = levenshtein_distance(input_sentence, question)
+            if distance < min_distance:
+                min_distance = distance
+                best_match_index = i
+                
+        # 가장 유사한 질문에 해당하는 답변을 반환
+        return self.answers[best_match_index]
 
-# 가장 유사한 질문의 인덱스 찾기
-most_similar_index = find_most_similar_question(chat_question, questions)
+# 데이터 파일의 경로를 지정합니다.
+filepath = 'ChatbotData.csv'
 
-# 해당 인덱스의 답변 출력
-answer = data['A'][most_similar_index]
-print(f"Chat 질문: {chat_question}")
-print(f"가장 유사한 학습 데이터의 질문: {questions[most_similar_index]}")
-print(f"답변: {answer}")
+# 챗봇 객체를 생성합니다.
+chatbot = SimpleChatBot(filepath)
+
+# '종료'라는 입력이 나올 때까지 사용자의 입력에 따라 챗봇의 응답을 출력하는 무한 루프를 실행합니다.
+while True:
+    input_sentence = input('You: ')
+    if input_sentence.lower() == '종료':
+        break
+    response = chatbot.find_best_answer(input_sentence)
+    print('Chatbot:', response)
